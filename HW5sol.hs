@@ -1,4 +1,4 @@
-\module HW5sol where
+module HW5sol where
 import HW5types
 
 type Prog = [Cmd]
