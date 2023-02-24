@@ -25,41 +25,40 @@ rank (p:ps) r =  let (a,b) = rankC p in
 		 if a > r then Nothing else rank ps ((r-a)+b)
 
 -- semantic commands from HW 4
-semCmd :: Cmd -> Stack -> Maybe Stack
+semCmd :: Cmd -> Stack -> Result
+semCmd (LDI x) xs = A (I x : xs)
+semCmd (LDB x) xs = A (B x : xs)
 
-semCmd (LDI i) s = Just (i:s)
-semCmd (LDB b) s = Just (b:s)
+semCmd ADD (I x:I y:xs) = A (I (x + y) : xs)
+semCmd ADD (_:_:_) = TypeError
 
-semCmd ADD [] = Nothing
-semCmd ADD (x:[]) = Nothing
-semCmd ADD (x:y:xs) = Just (x+y:xs)
+semCmd MULT (I x:I y:xs) = A (I (x * y) : xs)
+semCmd MULT (_:_:_) = TypeError
 
-semCmd MULT [] = Nothing
-semCmd MULT (x:[]) = Nothing
-semCmd MULT (x:y:xs) = Just (x*y:xs)
+semCmd DUP (x:xs) = A (x : x : xs)
 
-semCmd DUP [] = Nothing
-semCmd DUP (x:xs) = Just (x:x:xs)
-
-semCmd LEQ [] = Nothing
-semCmd LEQ (x:[]) = Nothing
-semCmd LEQ (x:y:s) = Just (x<=y:s)
-semCmd LEQ _ = Nothing
+semCmd LEQ (I x:I y:xs) = A (B (x <= y) : xs)
+semCmd LEQ (_:_:_) = TypeError
 
 -- need to edit if else command
-semCmd (IFELSE p1 p2) (True:xs) = run p1 xs
-semCmd (IFELSE p1 p2) (False:xs) = run p2 xs
+semCmd (IFELSE p1 p2) (B p:xs)
+  | p = run p1 xs
+  | otherwise = run p2 xs
+semCmd (IFELSE _ _) (_:_) = TypeError
 
 -- DEC decrements the topmost element on the stack
-semCmd DEC [] = Nothing
-semCmd DEC (x:xs) = Just (x-1:xs)
+semCmd DEC (I x:xs) = A (I (x - 1) : xs)
+semCmd DEC (_:_) = TypeError
 
 -- SWAP exchanges the two topmost elements on the stack 
-semCmd SWAP [] = Nothing
-semCmd SWAP (x:y:xs) = Just (y:x:xs)
+semCmd SWAP (x:y:xs) = A (y : x : xs)
 
 -- POP k pops k elements off the stack
-semCmd (POP k) s = (drop k) s
+semCmd (POP k) xs
+  | k > length xs = RankError
+  | otherwise = A $ drop k xs
+
+semCmd _ _ = RankError
 
 -- run function 
 run :: Prog -> Stack -> Result
